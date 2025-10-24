@@ -1,0 +1,179 @@
+@startuml
+hide circle
+skinparam classAttributeIconSize 0
+
+package "domain" {
+  abstract class Usuario {
+    - id : String
+    - nombre : String
+    - activo : boolean
+    - prestamosActuales : int
+    + Usuario(id:String, nombre:String)
+    + puedeTomarPrestamo(max:int) : boolean
+    + incrementarPrestamos() : void
+    + decrementarPrestamos() : void
+    + getId() : String
+    + getNombre() : String
+    + isActivo() : boolean
+    + setActivo(activo:boolean) : void
+  }
+
+  class Estudiante extends Usuario {
+    - carrera : String
+    - matricula : String
+    + Estudiante(id:String, nombre:String, carrera:String, matricula:String)
+    + getTipo() : String
+  }
+
+  class Profesor extends Usuario {
+    - departamento : String
+    - empleadoId : String
+    + Profesor(id:String, nombre:String, departamento:String, empleadoId:String)
+    + getTipo() : String
+  }
+
+  class Autor {
+    - id : String
+    - nombre : String
+    + Autor(id:String, nombre:String)
+    + getId() : String
+    + getNombre() : String
+  }
+
+  class Categoria {
+    - id : String
+    - nombre : String
+    + Categoria(id:String, nombre:String)
+    + getId() : String
+    + getNombre() : String
+  }
+
+  class Editorial {
+    - id : String
+    - nombre : String
+    + Editorial(id:String, nombre:String)
+    + getId() : String
+    + getNombre() : String
+  }
+
+  class Libro {
+    - isbn : String
+    - titulo : String
+    - anio : int
+    - editorial : Editorial
+    - autores : java.util.List<Autor>
+    - categorias : java.util.List<Categoria>
+    + Libro(isbn:String, titulo:String, anio:int, editorial:Editorial)
+    + agregarAutor(a:Autor) : void
+    + agregarCategoria(c:Categoria) : void
+    + getIsbn() : String
+    + getTitulo() : String
+    + getAnio() : int
+    + getEditorial() : Editorial
+    + getAutores() : java.util.List<Autor>
+    + getCategorias() : java.util.List<Categoria>
+  }
+
+  class Ejemplar {
+    - codigo : String
+    - libro : Libro
+    - disponible : boolean
+    + Ejemplar(codigo:String, libro:Libro)
+    + getCodigo() : String
+    + getLibro() : Libro
+    + isDisponible() : boolean
+    + marcarPrestado() : void
+    + marcarDisponible() : void
+  }
+
+  class Prestamo {
+    - id : String
+    - usuario : Usuario
+    - ejemplar : Ejemplar
+    - fechaPrestamo : java.time.LocalDate
+    - fechaLimite : java.time.LocalDate
+    - fechaDevolucion : java.time.LocalDate
+    - penalizacion : Penalizacion
+    + Prestamo(id:String, usuario:Usuario, ejemplar:Ejemplar, fechaPrestamo:java.time.LocalDate, fechaLimite:java.time.LocalDate)
+    + calcularPenalizacion(cfg:ConfiguracionSistema, hoy:java.time.LocalDate) : Penalizacion
+    + cerrarDevolucion(fecha:java.time.LocalDate) : void
+    + getUsuario() : Usuario
+    + getEjemplar() : Ejemplar
+    + getFechaPrestamo() : java.time.LocalDate
+    + getFechaLimite() : java.time.LocalDate
+    + getFechaDevolucion() : java.time.LocalDate
+  }
+
+  class Penalizacion {
+    - diasAtraso : int
+    - montoTotal : double
+    + Penalizacion(diasAtraso:int, montoTotal:double)
+    + esMoroso() : boolean
+    + getDiasAtraso() : int
+    + getMontoTotal() : double
+  }
+
+  class Rol {
+    - nombre : String
+    + Rol(nombre:String)
+    + getNombre() : String
+    + tienePermiso(accion:String) : boolean
+  }
+
+  class UsuarioSistema {
+    - username : String
+    - passwordHash : String
+    - rol : Rol
+    + UsuarioSistema(username:String, passwordHash:String, rol:Rol)
+    + autenticar(pw:String) : boolean
+    + cambiarPassword(pwNueva:String) : void
+    + getRol() : Rol
+    + getUsername() : String
+  }
+}
+
+package "config" {
+  class ConfiguracionSistema {
+    - diasPrestamo : int
+    - multaPorDia : double
+    - maxPrestamosPorUsuario : int
+    - permitirRenovacion : boolean
+    + ConfiguracionSistema(dias:int, multa:double, max:int, renovar:boolean)
+    + cargarPorDefecto() : ConfiguracionSistema
+    + actualizar(dias:int, multa:double, max:int, renovar:boolean) : void
+    + getDiasPrestamo() : int
+    + getMultaPorDia() : double
+    + getMaxPrestamosPorUsuario() : int
+    + isPermitirRenovacion() : boolean
+  }
+}
+
+package "services" {
+  class BusquedaService {
+    - catalogo : java.util.Collection<Libro>
+    + BusquedaService(catalogo:java.util.Collection<Libro>)
+    + buscarPorTitulo(titulo:String) : java.util.List<Libro>
+    + buscarPorAutor(nombre:String) : java.util.List<Libro>
+    + buscarPorCategoria(nombre:String) : java.util.List<Libro>
+    + filtrar(t:String, a:String, c:String, e:String) : java.util.List<Libro>
+  }
+
+  class ReporteService {
+    + topLibrosMasPrestados(prestamos:java.util.List<Prestamo>, desde:java.time.LocalDate, hasta:java.time.LocalDate, n:int) : java.util.List<Libro>
+    + estadisticasPorEditorial(prestamos:java.util.List<Prestamo>, desde:java.time.LocalDate, hasta:java.time.LocalDate) : java.util.Map<Editorial,Integer>
+  }
+}
+
+' Relaciones
+Libro "1" -- "1" Editorial
+Libro "*" -- "*" Autor
+Libro "*" -- "*" Categoria
+Libro "1" -- "many" Ejemplar
+Prestamo "*" --> "1" Usuario
+Prestamo "*" --> "1" Ejemplar
+Prestamo "0..1" --> "1" Penalizacion
+UsuarioSistema "*" --> "1" Rol
+BusquedaService ..> Libro
+ReporteService ..> Prestamo
+Prestamo ..> ConfiguracionSistema
+@enduml
